@@ -21,9 +21,12 @@ import android.widget.TextView;
 import java.util.List;
 
 import retrofit2.adapter.rxjava.HttpException;
-import rx.Subscriber;
-import rx.Subscription;
-import rx.android.schedulers.AndroidSchedulers;
+import io.reactivex.Observable;
+import io.reactivex.android.schedulers.AndroidSchedulers;
+import io.reactivex.disposables.Disposable;
+import io.reactivex.functions.Function;
+import io.reactivex.schedulers.Schedulers;
+
 import uk.ivanc.archi.model.GithubService;
 import uk.ivanc.archi.model.Repository;
 

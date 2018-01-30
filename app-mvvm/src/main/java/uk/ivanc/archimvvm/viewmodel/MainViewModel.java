@@ -13,10 +13,21 @@ import android.widget.TextView;
 
 import java.util.List;
 
+import io.reactivex.ObservableEmitter;
+import io.reactivex.ObservableOnSubscribe;
+import io.reactivex.Scheduler;
+import io.reactivex.disposables.CompositeDisposable;
+import io.reactivex.subscribers.DisposableSubscriber;
 import retrofit2.adapter.rxjava.HttpException;
-import rx.Subscriber;
-import rx.Subscription;
-import rx.android.schedulers.AndroidSchedulers;
+
+
+
+import io.reactivex.android.schedulers.AndroidSchedulers;
+import io.reactivex.disposables.CompositeDisposable;
+import io.reactivex.functions.Consumer;
+import io.reactivex.functions.Function;
+import io.reactivex.schedulers.Schedulers;
+
 import uk.ivanc.archimvvm.ArchiApplication;
 import uk.ivanc.archimvvm.R;
 import uk.ivanc.archimvvm.model.GithubService;
@@ -36,7 +47,8 @@ public class MainViewModel implements ViewModel {
     public ObservableField<String> infoMessage;
 
     private Context context;
-    private Subscription subscription;
+    //private Subscription subscriptio
+    private CompositeDisposable mCompositeDisposable = new CompositeDisposable();
     private List<Repository> repositories;
     private DataListener dataListener;
     private String editTextUsernameValue;
@@ -57,8 +69,7 @@ public class MainViewModel implements ViewModel {
 
     @Override
     public void destroy() {
-        if (subscription != null && !subscription.isUnsubscribed()) subscription.unsubscribe();
-        subscription = null;
+        mCompositeDisposable.clear();
         context = null;
         dataListener = null;
     }
@@ -100,15 +111,34 @@ public class MainViewModel implements ViewModel {
         progressVisibility.set(View.VISIBLE);
         recyclerViewVisibility.set(View.INVISIBLE);
         infoMessageVisibility.set(View.INVISIBLE);
-        if (subscription != null && !subscription.isUnsubscribed()) subscription.unsubscribe();
+
         ArchiApplication application = ArchiApplication.get(context);
         GithubService githubService = application.getGithubService();
-        subscription = githubService.publicRepositories(username)
-                .observeOn(AndroidSchedulers.mainThread())
-                .subscribeOn(application.defaultSubscribeScheduler())
-                .subscribe(new Subscriber<List<Repository>>() {
+
+        mCompositeDisposable.add(githubService.publicRepositories(username)
+                .subscribeOn(Schedulers.io()) // "work" on io thread
+                .observeOn(AndroidSchedulers.mainThread()) // "listen" on UIThread
+                .subscribeWith( new DisposableSubscriber<List<Repository>>() {
                     @Override
-                    public void onCompleted() {
+                    public void onNext(List<Repository> repositories) {
+                        Log.i(TAG, "Repos loaded " + repositories);
+                        MainViewModel.this.repositories = repositories;
+                    }
+
+                    @Override
+                    public void onError(Throwable t) {
+                        Log.e(TAG, "Error loading GitHub repos ", t);
+                        progressVisibility.set(View.INVISIBLE);
+                        if (isHttp404(t)) {
+                            infoMessage.set(context.getString(R.string.error_username_not_found));
+                        } else {
+                            infoMessage.set(context.getString(R.string.error_loading_repos));
+                        }
+                        infoMessageVisibility.set(View.VISIBLE);
+                    }
+
+                    @Override
+                    public void onComplete() {
                         if (dataListener != null) dataListener.onRepositoriesChanged(repositories);
                         progressVisibility.set(View.INVISIBLE);
                         if (!repositories.isEmpty()) {
@@ -118,26 +148,52 @@ public class MainViewModel implements ViewModel {
                             infoMessageVisibility.set(View.VISIBLE);
                         }
                     }
-
-                    @Override
-                    public void onError(Throwable error) {
-                        Log.e(TAG, "Error loading GitHub repos ", error);
-                        progressVisibility.set(View.INVISIBLE);
-                        if (isHttp404(error)) {
-                            infoMessage.set(context.getString(R.string.error_username_not_found));
-                        } else {
-                            infoMessage.set(context.getString(R.string.error_loading_repos));
-                        }
-                        infoMessageVisibility.set(View.VISIBLE);
-                    }
-
-                    @Override
-                    public void onNext(List<Repository> repositories) {
-                        Log.i(TAG, "Repos loaded " + repositories);
-                        MainViewModel.this.repositories = repositories;
-                    }
-                });
+                }));
     }
+
+
+
+
+
+//                .subscribe(
+//                        new Subscriber<List<Repository>>() {
+//                            @Override
+//                            public void onCompleted() {
+//                                if (dataListener != null) dataListener.onRepositoriesChanged(repositories);
+//                                progressVisibility.set(View.INVISIBLE);
+//                                if (!repositories.isEmpty()) {
+//                                    recyclerViewVisibility.set(View.VISIBLE);
+//                                } else {
+//                                    infoMessage.set(context.getString(R.string.text_empty_repos));
+//                                    infoMessageVisibility.set(View.VISIBLE);
+//                                }
+//                            }
+//
+//                            @Override
+//                            public void onError(Throwable error) {
+//                                Log.e(TAG, "Error loading GitHub repos ", error);
+//                                progressVisibility.set(View.INVISIBLE);
+//                                if (isHttp404(error)) {
+//                                    infoMessage.set(context.getString(R.string.error_username_not_found));
+//                                } else {
+//                                    infoMessage.set(context.getString(R.string.error_loading_repos));
+//                                }
+//                                infoMessageVisibility.set(View.VISIBLE);
+//                            }
+//
+//                            @Override
+//                            public void onNext(List<Repository> repositories) {
+//                                Log.i(TAG, "Repos loaded " + repositories);
+//                                MainViewModel.this.repositories = repositories;
+//                            }
+//                        }
+//
+//                )
+//        );
+
+
+
+
 
     private static boolean isHttp404(Throwable error) {
         return error instanceof HttpException && ((HttpException) error).code() == 404;

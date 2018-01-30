@@ -4,15 +4,24 @@ import android.content.Context;
 import android.databinding.BindingAdapter;
 import android.databinding.ObservableField;
 import android.databinding.ObservableInt;
+import android.net.Uri;
 import android.util.Log;
 import android.view.View;
 import android.widget.ImageView;
+import android.widget.Toast;
 
 import com.squareup.picasso.Picasso;
 
-import rx.Subscription;
-import rx.android.schedulers.AndroidSchedulers;
-import rx.functions.Action1;
+import io.reactivex.disposables.CompositeDisposable;
+import io.reactivex.android.schedulers.AndroidSchedulers;
+import io.reactivex.disposables.CompositeDisposable;
+import io.reactivex.functions.Action;
+import io.reactivex.functions.Consumer;
+import io.reactivex.functions.Function;
+import io.reactivex.schedulers.Schedulers;
+
+
+import io.reactivex.subscribers.DisposableSubscriber;
 import uk.ivanc.archimvvm.ArchiApplication;
 import uk.ivanc.archimvvm.R;
 import uk.ivanc.archimvvm.model.GithubService;
@@ -28,7 +37,6 @@ public class RepositoryViewModel implements ViewModel {
 
     private Repository repository;
     private Context context;
-    private Subscription subscription;
 
     public ObservableField<String> ownerName;
     public ObservableField<String> ownerEmail;
@@ -36,6 +44,7 @@ public class RepositoryViewModel implements ViewModel {
     public ObservableInt ownerEmailVisibility;
     public ObservableInt ownerLocationVisibility;
     public ObservableInt ownerLayoutVisibility;
+    private CompositeDisposable mCompositeDisposable = new CompositeDisposable();
 
     public RepositoryViewModel(Context context, final Repository repository) {
         this.repository = repository;
@@ -85,7 +94,7 @@ public class RepositoryViewModel implements ViewModel {
     @Override
     public void destroy() {
         this.context = null;
-        if (subscription != null && !subscription.isUnsubscribed()) subscription.unsubscribe();
+        mCompositeDisposable.clear();
     }
 
     @BindingAdapter({"imageUrl"})
@@ -99,20 +108,68 @@ public class RepositoryViewModel implements ViewModel {
     private void loadFullUser(String url) {
         ArchiApplication application = ArchiApplication.get(context);
         GithubService githubService = application.getGithubService();
-        subscription = githubService.userFromUrl(url)
-                .observeOn(AndroidSchedulers.mainThread())
-                .subscribeOn(application.defaultSubscribeScheduler())
-                .subscribe(new Action1<User>() {
-                    @Override
-                    public void call(User user) {
-                        Log.i(TAG, "Full user data loaded " + user);
+//        subscription = githubService.userFromUrl(url)
+//                .observeOn(AndroidSchedulers.mainThread())
+//                .subscribeOn(application.defaultSubscribeScheduler())
+//                .subscribe(new Action1<User>() {
+//                    @Override
+//                    public void call(User user) {
+//                        Log.i(TAG, "Full user data loaded " + user);
+//                        ownerName.set(user.name);
+//                        ownerEmail.set(user.email);
+//                        ownerLocation.set(user.location);
+//                        ownerEmailVisibility.set(user.hasEmail() ? View.VISIBLE : View.GONE);
+//                        ownerLocationVisibility.set(user.hasLocation() ? View.VISIBLE : View.GONE);
+//                        ownerLayoutVisibility.set(View.VISIBLE);
+//                    }
+//                });
+        mCompositeDisposable.add(
+                githubService.userFromUrl(url)
+                .observeOn(Schedulers.io())
+                .subscribeOn(AndroidSchedulers.mainThread())
+                .subscribeWith(
+//                        new Consumer<User>() {
+//                    @Override
+//                    public void accept(User user) throws Exception {
+//                        Log.i(TAG, "Full user data loaded " + user);
+//                        ownerName.set(user.name);
+//                        ownerEmail.set(user.email);
+//                        ownerLocation.set(user.location);
+//                        ownerEmailVisibility.set(user.hasEmail() ? View.VISIBLE : View.GONE);
+//                        ownerLocationVisibility.set(user.hasLocation() ? View.VISIBLE : View.GONE);
+//                        ownerLayoutVisibility.set(View.VISIBLE);
+//                    }
+//
+//
+//
+//                }
+                        new DisposableSubscriber<User>() {
+                            @Override
+                            public void onNext(User user) {
+                                Log.i(TAG, "Full user data loaded " + user);
                         ownerName.set(user.name);
                         ownerEmail.set(user.email);
                         ownerLocation.set(user.location);
                         ownerEmailVisibility.set(user.hasEmail() ? View.VISIBLE : View.GONE);
                         ownerLocationVisibility.set(user.hasLocation() ? View.VISIBLE : View.GONE);
                         ownerLayoutVisibility.set(View.VISIBLE);
-                    }
-                });
+                            }
+
+                            @Override
+                            public void onError(Throwable t) {
+                               Log.e("error","error");
+                            }
+
+                            @Override
+                            public void onComplete() {
+
+                            }
+                        }
+
+                )
+
+        );
+
+
     }
 }

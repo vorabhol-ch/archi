@@ -35,8 +35,9 @@ dependencies {
     compile dependencies.retrofitAdapterRxJava
     compile dependencies.picasso
     compile dependencies.rxAndroid
+    compile dependencies.rxJava
     compile dependencies.circleImageView
-
+    compile 'com.squareup.retrofit2:adapter-rxjava2:2.3.0'
     testCompile dependencies.jUnit
     testCompile dependencies.mockito
     testCompile dependencies.robolectric

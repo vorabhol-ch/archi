@@ -2,21 +2,25 @@ package uk.ivanc.archimvvm.model;
 
 import java.util.List;
 
+import io.reactivex.Flowable;
+import io.reactivex.Observable;
+import io.reactivex.Single;
 import retrofit2.Retrofit;
 import retrofit2.adapter.rxjava.RxJavaCallAdapterFactory;
+import retrofit2.adapter.rxjava2.RxJava2CallAdapterFactory;
 import retrofit2.converter.gson.GsonConverterFactory;
 import retrofit2.http.GET;
 import retrofit2.http.Path;
 import retrofit2.http.Url;
-import rx.Observable;
+
 
 public interface GithubService {
 
     @GET("users/{username}/repos")
-    Observable<List<Repository>> publicRepositories(@Path("username") String username);
+    Flowable<List<Repository>> publicRepositories(@Path("username") String username);
 
     @GET
-    Observable<User> userFromUrl(@Url String userUrl);
+    Flowable<User> userFromUrl(@Url String userUrl);
 
 
     class Factory {
@@ -24,7 +28,7 @@ public interface GithubService {
             Retrofit retrofit = new Retrofit.Builder()
                     .baseUrl("https://api.github.com/")
                     .addConverterFactory(GsonConverterFactory.create())
-                    .addCallAdapterFactory(RxJavaCallAdapterFactory.create())
+                    .addCallAdapterFactory(RxJava2CallAdapterFactory.create())
                     .build();
             return retrofit.create(GithubService.class);
         }
