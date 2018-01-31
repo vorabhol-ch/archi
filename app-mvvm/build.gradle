@@ -1,8 +1,8 @@
 apply plugin: 'com.android.application'
 
 android {
-    compileSdkVersion rootProject.ext.androidCompileSdkVersion
-    buildToolsVersion rootProject.ext.androidBuildToolsVersion
+    compileSdkVersion 24
+    buildToolsVersion '27.0.0'
 
     defaultConfig {
         applicationId "uk.ivanc.archimvvm"
@@ -22,11 +22,14 @@ android {
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
     }
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
+    }
 }
 
 dependencies {
-    Map<String, String> dependencies = rootProject.ext.dependencies;
-
+    Map<String, String> dependencies = rootProject.ext.dependencies
     compile dependencies.appCompat
     compile dependencies.cardView
     compile dependencies.recyclerView
