@@ -14,7 +14,7 @@ ext {
             rxJava: 'io.reactivex.rxjava2:rxjava:2.1.8',
             circleImageView: 'de.hdodenhof:circleimageview:1.3.0',
             jUnit: 'junit:junit:4.12',
-            mockito: 'org.mockito:mockito-core:1.10.19',
-            robolectric: 'org.robolectric:robolectric:3.0'
+            mockito: 'org.mockito:mockito-core:1.+',
+            robolectric: 'org.robolectric:robolectric:3.6.1'
     ]
 }

@@ -28,6 +28,7 @@ import io.reactivex.functions.Consumer;
 import io.reactivex.functions.Function;
 import io.reactivex.schedulers.Schedulers;
 
+import retrofit2.http.HTTP;
 import uk.ivanc.archimvvm.ArchiApplication;
 import uk.ivanc.archimvvm.R;
 import uk.ivanc.archimvvm.model.GithubService;
@@ -153,7 +154,7 @@ public class MainViewModel implements ViewModel {
 
 
     private static boolean isHttp404(Throwable error) {
-        return error instanceof HttpException && ((HttpException) error).code() == 404;
+        return error instanceof retrofit2.HttpException && ((retrofit2.HttpException) error).code() == 404;
     }
 
     public interface DataListener {

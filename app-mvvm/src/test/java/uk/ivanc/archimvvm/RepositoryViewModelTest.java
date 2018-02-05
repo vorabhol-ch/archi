@@ -5,12 +5,12 @@ import android.view.View;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.robolectric.RobolectricGradleTestRunner;
+import org.robolectric.RobolectricTestRunner;
 import org.robolectric.RuntimeEnvironment;
 import org.robolectric.annotation.Config;
 
-import rx.Observable;
-import rx.schedulers.Schedulers;
+import io.reactivex.Flowable;
+import io.reactivex.schedulers.Schedulers;
 import uk.ivanc.archimvvm.model.GithubService;
 import uk.ivanc.archimvvm.model.Repository;
 import uk.ivanc.archimvvm.model.User;
@@ -21,8 +21,8 @@ import static org.junit.Assert.assertEquals;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-@RunWith(RobolectricGradleTestRunner.class)
-@Config(constants = BuildConfig.class, sdk = 21)
+@RunWith(RobolectricTestRunner.class)
+@Config(constants = BuildConfig.class, sdk = 25)
 public class RepositoryViewModelTest {
 
     GithubService githubService;
@@ -39,13 +39,20 @@ public class RepositoryViewModelTest {
         application.setGithubService(githubService);
         // Change the default subscribe schedulers so all observables
         // will now run on the same thread
-        application.setDefaultSubscribeScheduler(Schedulers.immediate());
+        application.setDefaultSubscribeScheduler(Schedulers.computation());
         // Default behaviour is to load a mock owner when the view model is instantiated
         repository = MockModelFabric.newRepository("Repository");
+
+
         owner = MockModelFabric.newUser("owner");
         when(githubService.userFromUrl(repository.owner.url))
-                .thenReturn(Observable.just(owner));
+                .thenReturn(Flowable.just(owner));
+
+
+
         viewModel = new RepositoryViewModel(application, repository);
+        System.out.println(viewModel.ownerName.get());
+        System.out.println("--------------------------------------------");
     }
 
     @Test
@@ -90,6 +97,9 @@ public class RepositoryViewModelTest {
 
     @Test
     public void shouldLoadFullOwnerOnInstantiation() {
+
+        System.out.println(viewModel.ownerName.get());
+        System.out.println("--------------------------------------------");
         assertEquals(owner.name, viewModel.ownerName.get());
         assertEquals(owner.email, viewModel.ownerEmail.get());
         assertEquals(owner.location, viewModel.ownerLocation.get());
